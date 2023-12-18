@@ -1,34 +1,91 @@
-import { Box, Paper, Typography, Button, TextField,Grid,Item,InputLabel, Toolbar } from "@mui/material";
+import { Box, Paper, Typography, Button, TextField,Grid,InputLabel, Toolbar } from "@mui/material";
 import React, { useState } from "react";
 import { LineChart, Line, CartesianGrid, XAxis, YAxis,ResponsiveContainer } from 'recharts';
-
-const data = [{name: '1', uv: 400, pv: 800, amt: 2400},
-{name: '2', uv: 200},
-{name: '3', uv: 300},
-{name: '4', uv: 250},
-{name: '5', uv: 100},];
+import dayjs from 'dayjs';
+import 'dayjs/locale/fr' // load on demand
 
 
 
-
-function ControlMotor({socket,dataSpeed}){
+function ControlMotor({socket,dataMotor,fulData}){
 
     const [speed, setSpeed] = useState("")
     const [mode, setMode] = useState(0)
     const [mouvementMotor,setMouvementMotor] = useState(0)
-    const [variableAPI, setVariablAPI] = useState("")
+    const [log, setLog] = useState([])
     
     const setMotorSocket = () =>{
-        socket.emit("helloworld",speed)
+        
+        console.log(typeof(speed), " ", speed.length , " valeur : ",speed )
+        let newSpeed
+        if(speed.length < 5){
+            switch (speed.length){
+                case 0:
+                    newSpeed = "0000"
+                    break
+                    case 1:
+                        newSpeed = `000${speed}`
+                        break
+                        case 2:
+                            newSpeed = `00${speed}`
+                            break
+                            case 3:
+                                newSpeed = `0${speed}`
+                                break
+                                default:
+                                    newSpeed = speed
+                                    break
+            }
+        }
+
+        socket?.emit("setSpeed",newSpeed)
+        if(socket){setLog(p=>[`${dayjs().format('HH:mm:ss')} : set speed : ${speed}`,...p]);}
+        
     }
 
     const handleModeMotor = (mode) => {
         setMode(mode)
+        let typeMouvement;
+        switch(mode){
+            case 1:
+                typeMouvement = "Manuel"
+                break
+            case 2:
+                typeMouvement = "Camera"
+                break
+            case 0:
+                typeMouvement = "Automatique"
+                break
+            default:
+                break
+            }
+
+        if(socket){setLog(p=>[`${dayjs().format('HH:mm:ss')} : Mode : ${typeMouvement}`,...p]);}
         socket?.emit("robotMode",mode)    
     }
 
     const handleMouvementMotor = (mode) => {
         setMouvementMotor(mode)
+        let typeMouvement;
+        switch(mode){
+        case 1:
+            typeMouvement = "Avant"
+            break
+        case 2:
+            typeMouvement = "Gauche"
+            break
+        case 3:
+            typeMouvement = "Droite"
+            break
+        case 4:
+            typeMouvement = "Arrière"
+            break
+        case 0:
+            typeMouvement = "Arrêt"
+            break
+        default:
+            break
+        }
+        if(socket){setLog(p=>[`${dayjs().format('HH:mm:ss')} : Mouvement robot : ${typeMouvement}`,...p]);}
         socket?.emit("commandRobot",mode)    
     }
 
@@ -43,11 +100,11 @@ function ControlMotor({socket,dataSpeed}){
                         <Typography variant="h5" sx={{textAlign:"center"}}>Courbe vitesse moteur</Typography>
 
                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={data}>
-                                <Line type="monotone" dataKey="uv" stroke="#8884d8" />
+                            <LineChart data={dataMotor}>
+                                <Line type="monotone" dataKey="speed" isAnimationActive={false} stroke="#8884d8" />
                                 <CartesianGrid stroke="#ccc" />
                                 <XAxis dataKey="Speed" />
-                                <YAxis />
+                                <YAxis domain={[0, 1000]}/>
                             </LineChart>
                         </ResponsiveContainer>
 
@@ -120,12 +177,14 @@ function ControlMotor({socket,dataSpeed}){
                     </Paper>
                 </Grid>
                 <Grid item xs={12} sm={12}>
-                    <Paper elevation={8} sx={{height:"25vh",overflow:"scroll",my:1,mb:2 }}>
-                        <Toolbar sx={{display:"flex",justifyContent:"center"}}>
+                    <Paper elevation={8} sx={{height:"25vh",my:1 }}>
+                        <Toolbar variant ="dense" sx={{display:"flex",justifyContent:"center"}}>
                         <Typography variant="h5" sx={{textAlign:"center", mx:3}}>Logs console</Typography>       
                         </Toolbar>
-                        <Box sx={{height:"10vh",overflow:"scroll"}}>
-
+                        <Box sx={{height:"17vh",px:1,overflow:"scroll"}}>
+                            {log.map((elem)=>{
+                                return(<Typography>{elem}</Typography>)
+                            })}
                         </Box>
                     </Paper>
                 </Grid>
